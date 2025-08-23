@@ -17,11 +17,11 @@ function useOllamaHook() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "deepseek-r1:1.5b",
+          model: "gemma3:1b",
           prompt: _prompt,
           max_tokens: 500,
           // NOTE: PARA UNA RESPUESTA MÁS RÁPIDA, PUEDES QUITAR EL STREAMING
-          stream: true,
+          stream: false,
         }),
       });
 
@@ -29,37 +29,45 @@ function useOllamaHook() {
         throw new Error("Respuesta inválida");
       }
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
+      console.log("Status response:", res.status);
+      console.log("Headers:", [...res.headers.entries()]);
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+      
+      const data = await res.json();
+      console.log("Respuesta del modelo:", data);
+      setResponse(data.response || "Sin respuesta");
 
-        buffer += decoder.decode(value, { stream: true });
+      // const reader = res.body.getReader();
+      // const decoder = new TextDecoder("utf-8");
+      // let buffer = "";
 
-        // Procesa líneas completas
-        const lines = buffer.split("\n");
-        buffer = lines.pop(); // la última línea puede estar incompleta
+      // while (true) {
+      //   const { value, done } = await reader.read();
+      //   if (done) break;
 
-        for (const line of lines) {
-          if (!line.trim()) continue;
+      //   buffer += decoder.decode(value, { stream: true });
 
-          try {
-            const parsed = JSON.parse(line);
-            if (parsed.done) {
-              console.log("🟢 FIN DE GENERACIÓN");
-              return; // o podrías hacer setLoading(false) aquí y seguir leyendo hasta done
-            }
-            if (parsed.response) {
-              setResponse((prev) => prev + parsed.response);
-            }
-          } catch (err) {
-            console.warn("❗ Error parseando línea JSON", err, line);
-          }
-        }
-      }
+      //   // Procesa líneas completas
+      //   const lines = buffer.split("\n");
+      //   buffer = lines.pop(); // la última línea puede estar incompleta
+
+      //   for (const line of lines) {
+      //     if (!line.trim()) continue;
+
+      //     try {
+      //       const parsed = JSON.parse(line);
+      //       if (parsed.done) {
+      //         console.log("🟢 FIN DE GENERACIÓN");
+      //         return; // o podrías hacer setLoading(false) aquí y seguir leyendo hasta done
+      //       }
+      //       if (parsed.response) {
+      //         setResponse((prev) => prev + parsed.response);
+      //       }
+      //     } catch (err) {
+      //       console.warn("❗ Error parseando línea JSON", err, line);
+      //     }
+      //   }
+      // }
     } catch (err) {
       console.error("Error en streaming:", err);
       setError(err.message || "Error en streaming");
